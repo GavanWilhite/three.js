@@ -76,29 +76,61 @@ THREE.EventDispatcher.prototype = {
 
 	dispatchEvent: function ( event ) {
 
-		if ( this._listeners === undefined ) return;
+		var shouldStopPropagation;
+		var shouldStopPropagationImmediately;
 
-		var listeners = this._listeners;
-		var listenerArray = listeners[ event.type ];
+		if ( event.bubbles ) {
 
-		if ( listenerArray !== undefined ) {
+			event.currentTarget = this;
 
-			event.target = this;
+			event.stopPropagation = function () {
 
-			var array = [];
-			var length = listenerArray.length;
-
-			for ( var i = 0; i < length; i ++ ) {
-
-				array[ i ] = listenerArray[ i ];
+				shouldStopPropagation = true;
 
 			}
 
-			for ( var i = 0; i < length; i ++ ) {
+			event.stopImmediatePropagation = function () {
 
-				array[ i ].call( this, event );
+				shouldStopPropagationImmediately = true;
 
 			}
+
+		}
+
+		if ( this._listeners ) {
+
+			var listeners = this._listeners;
+			var listenerArray = listeners[ event.type ];
+
+			if ( listenerArray ) {
+
+				event.target = event.target || this;
+
+				var array = [];
+				var length = listenerArray.length;
+
+				for ( var i = 0; i < length; i ++ ) {
+
+					array[ i ] = listenerArray[ i ];
+
+				}
+
+				for ( var i = 0; i < length; i ++ ) {
+
+					array[ i ].call( this, event );
+
+					if ( shouldStopPropagationImmediately ) return;
+
+				}
+
+			}
+
+		}
+
+
+		if ( event.bubbles && this.parent && this.parent.dispatchEvent && ! shouldStopPropagation ) {
+
+			dispatchEvent.call( this.parent, event );
 
 		}
 
